@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Verify a Certificate — Peptide Certification Level 1</title>
+  <meta name="description" content="Publicly verify a Peptide Certification Level 1 certificate by its unique certificate ID.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap header-inner">
+      <a class="brand" href="index.html" aria-label="Peptide Certification Level 1 home">
+        <span class="brand-mark" aria-hidden="true">P1</span>
+        <span class="brand-text"><strong>Peptide Certification</strong><small>Level 1</small></span>
+      </a>
+      <nav class="nav" aria-label="Main"><a href="index.html">Course</a><a href="verify.html" aria-current="page">Verify</a></nav>
+    </div>
+  </header>
+  <div id="mode-banner" class="mode-banner" hidden></div>
+
+  <main id="app" class="wrap narrow">
+    <section class="card">
+      <h1>Verify a certificate</h1>
+      <p class="muted">Enter the certificate ID printed on a Peptide Certification Level 1 certificate (format <code>PC1-XXXX-XXXX-XXXX</code>).</p>
+      <form id="verify-form" class="verify-form" autocomplete="off">
+        <label for="cert-id" class="sr-only">Certificate ID</label>
+        <input id="cert-id" name="id" type="text" placeholder="PC1-XXXX-XXXX-XXXX" maxlength="40" required spellcheck="false" autocapitalize="characters">
+        <button class="btn btn-primary" type="submit">Verify</button>
+      </form>
+      <div id="verify-result" aria-live="polite"></div>
+    </section>
+    <p class="muted small">A valid result confirms that the named person completed the Peptide Certification Level 1 educational course and passed its assessment. It is not a professional license or authorization to prescribe or administer any substance.</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap"><p>&copy; <span id="year"></span> Peptide Certification Program · <a href="index.html">Back to course</a></p></div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/config.js"></script>
+  <script src="assets/backend.js"></script>
+  <script src="assets/verify.js"></script>
+</body>
+</html>
