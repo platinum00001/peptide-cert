@@ -27,31 +27,33 @@ revoke all on private.quiz_answer_key from public, anon, authenticated;
 -- If you edit questions.js, update these rows to match.
 insert into private.quiz_answer_key (question_no, correct_index) values
   (1, 0),
-  (2, 1),
-  (3, 2),
+  (2, 2),
+  (3, 1),
   (4, 3),
-  (5, 1),
-  (6, 0),
+  (5, 0),
+  (6, 3),
   (7, 1),
   (8, 2),
   (9, 0),
   (10, 1),
-  (11, 3),
-  (12, 0),
-  (13, 1),
-  (14, 2),
-  (15, 1),
-  (16, 0),
-  (17, 1),
-  (18, 2),
-  (19, 3),
-  (20, 1),
-  (21, 2),
-  (22, 0),
-  (23, 3),
-  (24, 1),
+  (11, 2),
+  (12, 3),
+  (13, 0),
+  (14, 1),
+  (15, 2),
+  (16, 3),
+  (17, 0),
+  (18, 1),
+  (19, 2),
+  (20, 0),
+  (21, 3),
+  (22, 1),
+  (23, 2),
+  (24, 3),
   (25, 0)
 on conflict (question_no) do update set correct_index = excluded.correct_index;
+-- Remove any rows left over from a longer, older question set.
+delete from private.quiz_answer_key where question_no > 25;
 
 -- ---------- profiles ----------
 create table if not exists public.profiles (

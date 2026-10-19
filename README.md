@@ -3,18 +3,20 @@
 A static, dependency-free course site:
 
 - **Register / sign in** (Supabase Auth, or a local demo mode when Supabase isn't configured)
-- **7 lessons** — what peptides are, common categories, storage & handling basics, safety, regulations, informed consent, plus a clear *education-only / not medical advice* disclaimer. No dosing instructions.
+- **7 lessons** — introduction & disclaimer, how peptides work (amino-acid chains, receptors, signaling), research vs. FDA-approved peptides, quality/sourcing/reconstitution & storage concepts, safety/contraindications/adverse events, the regulatory landscape (FDA, 503A/503B compounding, research-use-only labeling), and ethics & informed consent. Each lesson ends with **key takeaways** and a short, unscored **knowledge check**. Plus a searchable **glossary** (`#/glossary`). Education only — no dosing amounts or protocols.
+- **Progress tracker**, dark biotech theme (glassmorphism, animated peptide-chain canvas that pauses when hidden and respects `prefers-reduced-motion`), Inter + Space Grotesk fonts, mobile-first
 - **25-question multiple-choice assessment**, 80% (20/25) to pass, retakes allowed
 - **Congratulations screen** and a **printable certificate** (name, date, unique certificate ID, Level 1)
 - **Public verification page** (`verify.html?id=PC1-XXXX-XXXX-XXXX`)
 
 ```
-index.html            App (hash-routed: #/login, #/register, #/dashboard, #/lessons, #/lesson/N, #/test, #/result, #/certificate)
+index.html            App (hash-routed: #/login, #/register, #/dashboard, #/lessons, #/lesson/N, #/glossary, #/test, #/result, #/certificate)
 verify.html           Public certificate lookup
 assets/config.js      ← Supabase URL + anon key go here
 assets/backend.js     Data layer (Supabase or localStorage demo)
 assets/app.js         UI / routing
-assets/lessons.js     Lesson content
+assets/lessons.js     Lesson content, takeaways, knowledge checks, glossary
+assets/bg.js          Lightweight animated background (canvas)
 assets/questions.js   Questions (no answers)
 assets/answer-key.js  Answer key — demo mode only (loaded on demand)
 assets/styles.css     Styles incl. print stylesheet for the certificate
