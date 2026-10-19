@@ -1,6 +1,6 @@
 /* 25 multiple-choice questions. The correct answers are NOT stored here.
  * In Supabase mode grading happens server-side (see supabase/schema.sql).
- * In local demo mode assets/answer-key.js is loaded on demand. */
+ * Grading happens server-side (public.peptide_submit_attempt). */
 window.PC1_QUESTIONS = [
   { q: "Peptides are best described as:",
     options: ["Short chains of amino acids linked by peptide bonds", "Fatty acids bound to glycerol", "Simple sugars joined by glycosidic bonds", "Single-stranded nucleic acids"] },

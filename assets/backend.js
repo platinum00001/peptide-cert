@@ -24,17 +24,6 @@
   function normalizeCertId(id) {
     return String(id || "").trim().toUpperCase().replace(/\s+/g, "");
   }
-  function loadScript(src) {
-    return new Promise(function (resolve, reject) {
-      var s = document.createElement("script");
-      s.src = src; s.onload = resolve; s.onerror = function () { reject(new Error("Failed to load " + src)); };
-      document.head.appendChild(s);
-    });
-  }
-  function scriptBase() {
-    var el = document.querySelector('script[src*="backend.js"]');
-    return el ? el.src.replace(/backend\.js.*$/, "") : "assets/";
-  }
 
   /* =========================================================
    * Supabase backend
@@ -48,10 +37,15 @@
     });
     function fail(error) { if (error) throw new Error(error.message || String(error)); }
 
+    // All data lives in the private `peptide` schema of the shared Supabase
+    // project and is reached only through public.peptide_* RPCs.
     async function profileFor(user) {
       if (!user) return null;
-      var res = await sb.from("profiles").select("full_name,email").eq("id", user.id).maybeSingle();
-      var name = (res.data && res.data.full_name) || (user.user_metadata && user.user_metadata.full_name) || user.email;
+      var name = (user.user_metadata && user.user_metadata.full_name) || user.email;
+      try {
+        var res = await sb.rpc("peptide_get_profile"); // creates the profile on first use
+        if (!res.error && res.data && res.data.full_name) name = res.data.full_name;
+      } catch (e) { /* fall back to auth metadata */ }
       return { id: user.id, email: user.email, full_name: name };
     }
 
@@ -89,27 +83,26 @@
         fail(r.error);
       },
       updateName: async function (fullName) {
-        var u = (await sb.auth.getUser()).data.user;
-        var r = await sb.from("profiles").update({ full_name: fullName }).eq("id", u.id);
+        var r = await sb.rpc("peptide_update_name", { p_full_name: fullName });
         fail(r.error);
       },
       submitAttempt: async function (answers) {
-        var r = await sb.rpc("submit_attempt", { p_answers: answers });
+        var r = await sb.rpc("peptide_submit_attempt", { p_answers: answers });
         fail(r.error);
         return r.data; // {attempt_id, score, total, percent, passed, certificate}
       },
       listAttempts: async function () {
-        var r = await sb.from("attempts").select("id,score,total,percent,passed,created_at").order("created_at", { ascending: false });
+        var r = await sb.rpc("peptide_list_attempts");
         fail(r.error);
         return r.data || [];
       },
       getMyCertificate: async function () {
-        var r = await sb.from("certificates").select("certificate_id,full_name,level,course,score_percent,issued_at,revoked").maybeSingle();
+        var r = await sb.rpc("peptide_my_certificate");
         fail(r.error);
         return r.data || null;
       },
       verify: async function (certId) {
-        var r = await sb.rpc("verify_certificate", { p_certificate_id: normalizeCertId(certId) });
+        var r = await sb.rpc("peptide_verify_certificate", { p_certificate_id: normalizeCertId(certId) });
         fail(r.error);
         var row = Array.isArray(r.data) ? r.data[0] : r.data;
         return row || null;
@@ -178,8 +171,10 @@
       },
       submitAttempt: async function (answers) {
         var u = currentRaw(); if (!u) throw new Error("Not signed in.");
-        if (!window.PC1_ANSWER_KEY) await loadScript(scriptBase() + "answer-key.js");
+        // The answer key is no longer shipped with the site; grading happens
+        // only on the server (public.peptide_submit_attempt).
         var key = window.PC1_ANSWER_KEY;
+        if (!Array.isArray(key)) throw new Error("Grading is only available when the site is connected to its server. Please try again later.");
         if (!Array.isArray(answers) || answers.length !== key.length) throw new Error("Please answer all " + key.length + " questions.");
         var score = 0;
         key.forEach(function (k, i) { if (answers[i] === k) score++; });

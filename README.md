@@ -18,9 +18,8 @@ assets/app.js         UI / routing
 assets/lessons.js     Lesson content, takeaways, knowledge checks, glossary
 assets/bg.js          Lightweight animated background (canvas)
 assets/questions.js   Questions (no answers)
-assets/answer-key.js  Answer key — demo mode only (loaded on demand)
 assets/styles.css     Styles incl. print stylesheet for the certificate
-supabase/schema.sql   Tables, RLS, grading + verification functions
+supabase/schema.sql   `peptide` schema: tables, RLS, grading + verification RPCs
 vercel.json           Static hosting headers
 ```
 
@@ -35,38 +34,34 @@ python3 -m http.server 8080      # then open http://localhost:8080
 
 With the placeholder values in `assets/config.js` the site runs in **local demo mode** (yellow banner): accounts, attempts and certificates live only in that browser's `localStorage`, and the verify page can only find certificates issued in the same browser. Demo mode is for previewing — it is not secure.
 
-## 2. Connect Supabase
+## 2. Supabase backend (shared project, isolated schema)
 
-1. Create a project at <https://supabase.com> (free tier is fine).
-2. **SQL Editor → New query** → paste all of `supabase/schema.sql` → **Run**. It is safe to re-run.
-   It creates:
-   - `profiles`, `attempts`, `certificates` (RLS on; users can read only their own rows)
-   - `private.quiz_answer_key` (not exposed through the API)
-   - `submit_attempt(p_answers)` — grades **server-side**, records the attempt, issues the certificate at ≥ 80% (max 10 attempts/hour/user)
-   - `verify_certificate(p_certificate_id)` — public lookup returning only name, course, level, issue date and revoked status
-   - a trigger that creates a profile on sign-up from the `full_name` entered on the register form
-3. **Project Settings → API**: copy the **Project URL** and the **anon public** key into `assets/config.js`:
-   ```js
-   SUPABASE_URL: "https://abcd1234.supabase.co",
-   SUPABASE_ANON_KEY: "eyJhbGciOi...",
-   ```
-   The anon key is meant to be public. **Never** put the `service_role` key in this site.
-4. **Authentication → URL Configuration**: set **Site URL** to your live URL (e.g. `https://peptide-cert.vercel.app`) and add it (plus `http://localhost:8080` for testing) to **Redirect URLs**. This is used by email-confirmation and password-reset links.
-5. **Authentication → Providers → Email**: keep it enabled. "Confirm email" on is recommended (users confirm, then sign in). Supabase's built-in mailer is heavily rate-limited — for real use, configure custom SMTP under **Authentication → SMTP Settings**.
-6. Optional hardening: once Supabase is connected you can delete `assets/answer-key.js` (it is never loaded in Supabase mode, but deleting it keeps answers off the public site).
+The live site uses the shared Supabase project **james-sites** (`oiousqgzqcjanikglkxl`). This app's data is kept in its **own Postgres schema `peptide`** so it cannot collide with the other apps in that project:
+
+- `peptide.profiles`, `peptide.attempts`, `peptide.certificates`, `peptide.quiz_answer_key` — RLS on, **no grants to `anon`/`authenticated`**, schema not exposed to the Data API. The answer key is readable only by `postgres`/`service_role`.
+- Public RPC wrappers (SECURITY DEFINER, `search_path = ''`, touch only `peptide.*`):
+  - `peptide_get_profile()` — returns the profile, creating it lazily on first use (no trigger on `auth.users`)
+  - `peptide_update_name(p_full_name)`
+  - `peptide_submit_attempt(p_answers)` — grades **server-side**, records the attempt, issues the certificate at ≥ 80% (max 10 attempts/hour/user)
+  - `peptide_list_attempts()`, `peptide_my_certificate()`
+  - `peptide_verify_certificate(p_certificate_id)` — anon; returns only name, course, level, issue date, revoked
+- `supabase/schema.sql` creates all of this and is safe to re-run (SQL Editor or migration).
+- `assets/config.js` holds the project URL and the **anon** key (public by design). Never put the `service_role` key in this site.
+
+**Auth is shared** with the other james-sites apps (same `auth.users`, same email settings, same Site URL). "Confirm email" is on, so new users must click the confirmation link before signing in. Add `https://platinum00001.github.io/peptide-cert/` under **Authentication → URL Configuration → Redirect URLs** (do not change the Site URL — other apps rely on it).
 
 ### Admin tasks (SQL Editor)
 
 ```sql
 -- recent certificates
-select certificate_id, full_name, issued_at, revoked from public.certificates order by issued_at desc;
+select certificate_id, full_name, issued_at, revoked from peptide.certificates order by issued_at desc;
 -- revoke one
-update public.certificates set revoked = true, revoked_reason = 'Issued in error' where certificate_id = 'PC1-XXXX-XXXX-XXXX';
+update peptide.certificates set revoked = true, revoked_reason = 'Issued in error' where certificate_id = 'PC1-XXXX-XXXX-XXXX';
 ```
 
 ### Editing questions
 
-`assets/questions.js` holds question text/options; the key is in two places that must match: `assets/answer-key.js` (demo) and the `insert into private.quiz_answer_key` block in `schema.sql` (0-based option index). Re-run that insert after changes. The pass mark (80%) is set in `config.js` (`PASS_PERCENT`, display + demo) and in `submit_attempt` (`c_pass_percent`, authoritative).
+`assets/questions.js` holds question text/options (no answers). The key lives only in the database: the `insert into peptide.quiz_answer_key` block in `schema.sql` (0-based option index). Re-run that block after changes. The pass mark (80%) is set in `config.js` (`PASS_PERCENT`, display only) and in `peptide_submit_attempt` (`c_pass_percent`, authoritative).
 
 ## 3. Publish via GitHub + Vercel
 
